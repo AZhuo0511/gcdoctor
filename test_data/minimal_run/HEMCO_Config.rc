@@ -1,0 +1,8 @@
+# Minimal fake HEMCO_Config.rc for gcdoctor testing
+ROOT: ./test_data/minimal_run/ExtData/HEMCO
+
+(((BOUNDARY CONDITIONS)))
+* BoundaryConditions ./test_data/minimal_run/ExtData/HEMCO/SAMPLE_BCs/GC_14.3.0/fullchem/GEOSChem.BoundaryConditions.*.nc4
+
+(((RESTART FIELDS)))
+* Restart ./test_data/minimal_run/GEOSChem.Restart.20190701_0000z.nc4

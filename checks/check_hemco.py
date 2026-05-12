@@ -4,7 +4,6 @@ This module performs read-only checks on HEMCO_Config.rc.
 """
 
 from pathlib import Path
-import re
 
 
 TARGET_KEYWORDS = [
@@ -22,22 +21,32 @@ def _strip_inline_comment(line: str) -> str:
 
 
 def _extract_paths_from_line(line: str) -> list[str]:
-    """Extract path-like tokens from one HEMCO_Config.rc line."""
-    path_patterns = [
-        r"/[^\s]+",
-        r"\$ROOT/[^\s]+",
-        r"\$\{ROOT\}/[^\s]+",
-    ]
+    """Extract path-like tokens from one HEMCO_Config.rc line.
 
+    The previous implementation matched any token beginning with ``/``.
+    That incorrectly converted relative paths such as ``./test_data`` into
+    ``/test_data``. Here we first split the line into tokens, then keep only
+    tokens that explicitly look like paths.
+    """
     paths: list[str] = []
-    for pattern in path_patterns:
-        paths.extend(re.findall(pattern, line))
 
-    cleaned_paths = []
-    for path in paths:
-        cleaned_paths.append(path.rstrip(",;"))
+    for token in line.split():
+        cleaned_token = token.strip().rstrip(",;")
+        if not cleaned_token:
+            continue
 
-    return cleaned_paths
+        looks_like_path = (
+            cleaned_token.startswith("/")
+            or cleaned_token.startswith("./")
+            or cleaned_token.startswith("../")
+            or cleaned_token.startswith("$ROOT/")
+            or cleaned_token.startswith("${ROOT}/")
+        )
+
+        if looks_like_path:
+            paths.append(cleaned_token)
+
+    return paths
 
 
 def _find_root_value(lines: list[str]) -> str | None:
