@@ -1,23 +1,40 @@
+"""Command-line entry point for gcdoctor."""
+
 from pathlib import Path
 import sys
 
+from checks.check_basic import check_basic_files
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python -m gcdoctor.main /path/to/run_directory")
-        sys.exit(1)
 
-    run_dir = Path(sys.argv[1])
-
+def print_header() -> None:
+    """Print the gcdoctor command-line banner."""
     print("=" * 60)
     print("gcdoctor - GEOS-Chem Run Directory Diagnostic Tool")
     print("=" * 60)
 
-    if not run_dir.exists():
-        print(f"[ERROR] Run directory does not exist: {run_dir}")
+
+def main() -> None:
+    """Run gcdoctor from the command line."""
+    if len(sys.argv) < 2:
+        print("Usage: python -m gcdoctor.main /path/to/run_directory")
         sys.exit(1)
 
-    print(f"[OK] Run directory found: {run_dir}")
+    run_dir = Path(sys.argv[1]).expanduser().resolve()
+
+    print_header()
+
+    results = check_basic_files(run_dir)
+
+    has_error = False
+    for result in results:
+        level = result["level"]
+        message = result["message"]
+        print(f"[{level}] {message}")
+        if level == "ERROR":
+            has_error = True
+
+    if has_error:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
