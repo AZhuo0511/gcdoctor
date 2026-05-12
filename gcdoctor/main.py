@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 
 from checks.check_basic import check_basic_files
+from checks.check_config import check_geoschem_config
 from checks.check_hemco import check_hemco_config
 from checks.check_logs import check_logs
 from checks.check_restart import check_restart_files
@@ -29,6 +30,7 @@ def main() -> None:
 
     results = []
     results.extend(check_basic_files(run_dir))
+    results.extend(check_geoschem_config(run_dir))
     results.extend(check_hemco_config(run_dir))
     results.extend(check_restart_files(run_dir))
     results.extend(check_logs(run_dir))
