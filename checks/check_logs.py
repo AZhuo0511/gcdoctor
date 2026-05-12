@@ -5,6 +5,7 @@ errors and warning patterns. It is read-only and does not modify files.
 """
 
 from pathlib import Path
+import re
 
 
 LOG_FILE_PATTERNS = [
@@ -31,6 +32,8 @@ ERROR_PATTERNS = [
     "GEOS-Chem ERROR",
 ]
 
+BC_MISSING_FIELD_PATTERN = re.compile(r"Cannot find field\s+BC_([A-Za-z0-9_]+)")
+
 
 def _find_log_files(run_dir: Path) -> list[Path]:
     """Find likely GEOS-Chem log files in a run directory."""
@@ -43,9 +46,23 @@ def _find_log_files(run_dir: Path) -> list[Path]:
     return unique_files
 
 
+def _extract_missing_bc_species(line: str) -> str | None:
+    """Extract missing BoundaryConditions species from a log line.
+
+    Example
+    -------
+    ``HEMCO ERROR: Cannot find field BC_ACR`` becomes ``ACR``.
+    """
+    match = BC_MISSING_FIELD_PATTERN.search(line)
+    if match:
+        return match.group(1)
+    return None
+
+
 def _scan_one_log_file(log_path: Path, max_matches: int = 30) -> list[dict]:
     """Scan one log file and return matched error records."""
     matches: list[dict] = []
+    missing_bc_species: set[str] = set()
 
     try:
         lines = log_path.read_text(errors="ignore").splitlines()
@@ -59,6 +76,10 @@ def _scan_one_log_file(log_path: Path, max_matches: int = 30) -> list[dict]:
         ]
 
     for line_number, line in enumerate(lines, start=1):
+        species = _extract_missing_bc_species(line)
+        if species:
+            missing_bc_species.add(species)
+
         for pattern in ERROR_PATTERNS:
             if pattern in line:
                 matches.append(
@@ -79,6 +100,23 @@ def _scan_one_log_file(log_path: Path, max_matches: int = 30) -> list[dict]:
                 }
             )
             break
+
+    if missing_bc_species:
+        species_list = ", ".join(sorted(missing_bc_species))
+        matches.append(
+            {
+                "level": "ERROR",
+                "item": "BoundaryConditions species compatibility",
+                "message": f"Missing BoundaryConditions species detected in {log_path.name}: {species_list}",
+            }
+        )
+        matches.append(
+            {
+                "level": "WARN",
+                "item": "BoundaryConditions species compatibility",
+                "message": "Possible cause: BoundaryConditions files may not match the current GEOS-Chem chemical mechanism. For nested fullchem runs, avoid using old SAMPLE_BCs blindly; generate BC files from a matching global fullchem simulation.",
+            }
+        )
 
     return matches
 

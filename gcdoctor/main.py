@@ -7,6 +7,7 @@ from checks.check_basic import check_basic_files
 from checks.check_hemco import check_hemco_config
 from checks.check_logs import check_logs
 from checks.check_restart import check_restart_files
+from utils.report import write_markdown_report
 
 
 def print_header() -> None:
@@ -39,6 +40,10 @@ def main() -> None:
         print(f"[{level}] {message}")
         if level == "ERROR":
             has_error = True
+
+    report_path = Path("gcdoctor_report.md").resolve()
+    write_markdown_report(results, run_dir, report_path)
+    print(f"[OK] Markdown report written: {report_path}")
 
     if has_error:
         sys.exit(1)
