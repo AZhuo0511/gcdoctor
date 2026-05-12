@@ -5,6 +5,7 @@ import sys
 
 from checks.check_basic import check_basic_files
 from checks.check_hemco import check_hemco_config
+from checks.check_logs import check_logs
 
 
 def print_header() -> None:
@@ -27,6 +28,7 @@ def main() -> None:
     results = []
     results.extend(check_basic_files(run_dir))
     results.extend(check_hemco_config(run_dir))
+    results.extend(check_logs(run_dir))
 
     has_error = False
     for result in results:
