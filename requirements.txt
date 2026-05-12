@@ -1,0 +1,4 @@
+pyyaml
+netCDF4
+xarray
+rich
