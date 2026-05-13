@@ -20,7 +20,7 @@ def _group_results_by_level(results: list[dict]) -> dict[str, list[dict]]:
     return grouped
 
 
-def write_markdown_report(results: list[dict], run_dir: Path, output_path: Path) -> None:
+def write_markdown_report(results: list[dict], run_dir: Path, output_path: str | Path) -> None:
     """Write gcdoctor diagnostic results to a Markdown report.
 
     Parameters
@@ -30,8 +30,9 @@ def write_markdown_report(results: list[dict], run_dir: Path, output_path: Path)
     run_dir:
         GEOS-Chem run directory that was diagnosed.
     output_path:
-        Markdown report path to write.
+        Markdown report path to write (``str`` or ``Path``).
     """
+    output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     counts = Counter(result.get("level", "UNKNOWN") for result in results)
