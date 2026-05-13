@@ -3,6 +3,8 @@
 from pathlib import Path
 from collections import Counter
 
+from utils.diagnosis import generate_diagnosis_summary
+
 
 LEVEL_ORDER = ["ERROR", "WARN", "OK"]
 
@@ -47,6 +49,19 @@ def write_markdown_report(results: list[dict], run_dir: Path, output_path: Path)
     lines.append(f"- ERROR: {counts.get('ERROR', 0)}")
     lines.append(f"- WARN: {counts.get('WARN', 0)}")
     lines.append(f"- OK: {counts.get('OK', 0)}")
+    diagnosis_entries = generate_diagnosis_summary(results)
+    lines.append("")
+    lines.append("## Diagnosis summary")
+    lines.append("")
+
+    if diagnosis_entries:
+        for entry in diagnosis_entries:
+            level = entry.get("level", "UNKNOWN")
+            message = entry.get("message", "")
+            lines.append(f"- **{level}**: {message}")
+    else:
+        lines.append("- None")
+
     lines.append("")
     lines.append("## Detailed results")
     lines.append("")
