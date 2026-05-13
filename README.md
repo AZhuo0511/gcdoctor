@@ -50,9 +50,18 @@ GEOS-Chem log.
 python -m gcdoctor.compare test_data/compare_base test_data/compare_test --output reports/compare_report.md
 ```
 
+With an experiment intent for targeted assessment:
+
+```bash
+python -m gcdoctor.compare test_data/compare_base test_data/compare_test --intent meic-nox --output reports/compare_meic_nox.md
+```
+
+Supported intents: ``general``, ``meic-nox``, ``meic-co``, ``meic-so2``,
+``meic-nh3``, ``meic-voc``, ``meic-all``.
+
 The compare tool checks directory structure, key configuration files, HEMCO
 keywords, HISTORY.rc, and restart files, then writes a comparison report with
-an experiment design assessment.
+an experiment design assessment and intent-based analysis.
 
 ## Exit codes
 

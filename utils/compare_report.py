@@ -9,6 +9,7 @@ def write_compare_report(
     base_dir: Path,
     test_dir: Path,
     output_path: str | Path,
+    intent: str = "general",
 ) -> None:
     """Write gcdoctor comparison results to a Markdown report.
 
@@ -22,6 +23,8 @@ def write_compare_report(
         TEST run directory path.
     output_path:
         Markdown report path to write (``str`` or ``Path``).
+    intent:
+        Experiment intent used for the comparison (default: ``general``).
     """
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -45,6 +48,7 @@ def write_compare_report(
     lines.append("")
     lines.append(f"- BASE: `{base_dir}`")
     lines.append(f"- TEST: `{test_dir}`")
+    lines.append(f"- Intent: {intent}")
     lines.append("")
 
     lines.append("## Summary")
@@ -70,6 +74,22 @@ def write_compare_report(
             lines.append(f"- **{level}**: {message}")
     else:
         lines.append("- No experiment design assessment items were generated.")
+    lines.append("")
+
+    # Experiment intent assessment section
+    _intent_items = [
+        r for r in results
+        if r.get("item", "") == "experiment intent"
+    ]
+    lines.append("## Experiment intent assessment")
+    lines.append("")
+    if _intent_items:
+        for item in _intent_items:
+            level = item.get("level", "UNKNOWN")
+            message = item.get("message", "")
+            lines.append(f"- **{level}**: {message}")
+    else:
+        lines.append("- No experiment intent assessment was generated.")
     lines.append("")
 
     # Detailed comparison results

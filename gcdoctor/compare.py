@@ -3,6 +3,7 @@
 Usage::
 
     python -m gcdoctor.compare BASE_DIR TEST_DIR [--output compare_report.md]
+    python -m gcdoctor.compare BASE_DIR TEST_DIR --intent meic-nox --output report.md
 """
 
 import argparse
@@ -31,6 +32,15 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default="gcdoctor_compare_report.md",
         help="Path for the Markdown compare report (default: gcdoctor_compare_report.md).",
     )
+    parser.add_argument(
+        "--intent",
+        default="general",
+        help=(
+            "Experiment intent for targeted assessment. "
+            "Supported: general, meic-nox, meic-co, meic-so2, meic-nh3, meic-voc, meic-all. "
+            "(default: general)"
+        ),
+    )
     return parser
 
 
@@ -49,7 +59,7 @@ def main() -> None:
 
     print_header()
 
-    results = compare_run_directories(base_dir, test_dir)
+    results = compare_run_directories(base_dir, test_dir, intent=args.intent)
 
     has_error = False
     for result in results:
@@ -60,7 +70,7 @@ def main() -> None:
             has_error = True
 
     report_path = Path(args.output).resolve()
-    write_compare_report(results, base_dir, test_dir, report_path)
+    write_compare_report(results, base_dir, test_dir, report_path, intent=args.intent)
     print(f"[OK] Compare report written: {report_path}")
 
     if has_error:

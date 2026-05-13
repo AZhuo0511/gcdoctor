@@ -43,6 +43,28 @@ _CORE_SIM_KEYS = [
     "grid.latitude",
 ]
 
+# Valid experiment intents
+_VALID_INTENTS = {
+    "general",
+    "meic-nox",
+    "meic-co",
+    "meic-so2",
+    "meic-nh3",
+    "meic-voc",
+    "meic-all",
+}
+
+# intent -> expected species keyword
+_MEIC_SPECIES_MAP = {
+    "meic-nox": "NOx",
+    "meic-co": "CO",
+    "meic-so2": "SO2",
+    "meic-nh3": "NH3",
+    "meic-voc": "VOC",
+}
+
+_ALL_SPECIES_KEYWORDS = ["NOx", "CO", "SO2", "NH3", "VOC"]
+
 
 def _read_text_lines(path: Path) -> list[str] | None:
     """Read a text file, returning lines or None on failure."""
@@ -61,8 +83,16 @@ def _file_status(path: Path) -> str:
     return "exists"
 
 
-def compare_run_directories(base_dir: Path, test_dir: Path) -> list[dict]:
-    """Compare two GEOS-Chem run directories and return diagnostic results."""
+def compare_run_directories(base_dir: Path, test_dir: Path, intent: str = "general") -> list[dict]:
+    """Compare two GEOS-Chem run directories and return diagnostic results.
+
+    Parameters
+    ----------
+    intent:
+        Experiment intent for targeted assessment. Supported values:
+        ``general``, ``meic-nox``, ``meic-co``, ``meic-so2``,
+        ``meic-nh3``, ``meic-voc``, ``meic-all``.
+    """
     results: list[dict] = []
 
     # ---- A. Directory existence ----
@@ -179,6 +209,7 @@ def compare_run_directories(base_dir: Path, test_dir: Path) -> list[dict]:
     _base_hemco_ok = _file_statuses.get("HEMCO_Config.rc", {}).get("base", "") == "exists"
     _test_hemco_ok = _file_statuses.get("HEMCO_Config.rc", {}).get("test", "") == "exists"
     _hemco_keyword_results: dict[str, str] = {}  # keyword -> "both" | "base_only" | "test_only"
+    _test_hemco_lower: str = ""
 
     if _base_hemco_ok and _test_hemco_ok:
         _base_hemco_lines = _read_text_lines(base_dir / "HEMCO_Config.rc")
@@ -187,6 +218,7 @@ def compare_run_directories(base_dir: Path, test_dir: Path) -> list[dict]:
         _test_text = "\n".join(_test_hemco_lines or [])
         _base_lower = _base_text.lower()
         _test_lower = _test_text.lower()
+        _test_hemco_lower = _test_lower
 
         for kw in _HEMCO_KEYWORDS:
             _kw_lower = kw.lower()
@@ -338,4 +370,284 @@ def compare_run_directories(base_dir: Path, test_dir: Path) -> list[dict]:
             {"level": "WARN", "item": "experiment design summary", "message": "TEST includes MEIC-related entries but no obvious mask keyword was found. Confirm that regional replacement does not double-count emissions."}
         )
 
+    # ---- H. Experiment intent assessment ----
+    _intent_unknown = intent not in _VALID_INTENTS
+    if _intent_unknown:
+        results.append(
+            {
+                "level": "WARN",
+                "item": "experiment intent",
+                "message": f"Unknown experiment intent '{intent}'. Falling back to general comparison assessment.",
+            }
+        )
+        intent = "general"
+
+    # Core consistency status
+    _core_consistent = _all_core_ok
+    if _all_core_ok:
+        for key in _CORE_SIM_KEYS:
+            if _base_meta.get(key) != _test_meta.get(key):
+                _core_consistent = False
+                break
+
+    _intent_results = _assess_experiment_intent(
+        test_hemco_lower=_test_hemco_lower,
+        hemco_keyword_results=_hemco_keyword_results,
+        core_consistent=_core_consistent,
+        configs_available=_all_core_ok,
+        intent=intent,
+    )
+    results.extend(_intent_results)
+
+    return results
+
+
+def _assess_experiment_intent(
+    test_hemco_lower: str,
+    hemco_keyword_results: dict[str, str],
+    core_consistent: bool,
+    configs_available: bool,
+    intent: str,
+) -> list[dict]:
+    """Generate experiment intent assessment results.
+
+    Parameters
+    ----------
+    test_hemco_lower:
+        Lowercased TEST HEMCO_Config.rc text, or ``""`` if unavailable.
+    hemco_keyword_results:
+        Keyword presence map from HEMCO comparison.
+    core_consistent:
+        Whether core simulation period and grid settings match.
+    configs_available:
+        Whether both geoschem_config.yml files were available.
+    intent:
+        Normalised experiment intent (always a known value).
+    """
+    results: list[dict] = []
+
+    # ---- General intent ----
+    if intent == "general":
+        results.append(
+            {
+                "level": "OK",
+                "item": "experiment intent",
+                "message": "Experiment intent is general; only generic BASE/TEST consistency checks were applied.",
+            }
+        )
+        # Still report core consistency
+        if configs_available:
+            if core_consistent:
+                results.append(
+                    {
+                        "level": "OK",
+                        "item": "experiment intent",
+                        "message": "Core simulation period and grid settings are consistent, supporting direct BASE/TEST comparison.",
+                    }
+                )
+            else:
+                results.append(
+                    {
+                        "level": "WARN",
+                        "item": "experiment intent",
+                        "message": "Core simulation period or grid settings differ. Intent assessment may not be directly comparable.",
+                    }
+                )
+        return results
+
+    # ---- MEIC single-species intents ----
+    if intent in _MEIC_SPECIES_MAP:
+        target_species = _MEIC_SPECIES_MAP[intent]
+        _meic_in_test = hemco_keyword_results.get("MEIC") in ("test_only", "both")
+        _has_mask = any(
+            hemco_keyword_results.get(m) in ("test_only", "both")
+            for m in ["China_mask", "Outside_China_mask"]
+        )
+        _target_in_test = target_species.lower() in test_hemco_lower
+
+        # A. MEIC presence
+        if _meic_in_test:
+            results.append(
+                {
+                    "level": "OK",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: TEST contains MEIC-related entries as expected.",
+                }
+            )
+        else:
+            results.append(
+                {
+                    "level": "WARN",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: TEST does not contain obvious MEIC-related entries.",
+                }
+            )
+
+        # B. Target species keyword
+        if _target_in_test:
+            results.append(
+                {
+                    "level": "OK",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: expected species keyword '{target_species}' was found in TEST.",
+                }
+            )
+        else:
+            results.append(
+                {
+                    "level": "WARN",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: expected species keyword '{target_species}' was not found in TEST.",
+                }
+            )
+
+        # C. Mask presence
+        if _has_mask:
+            results.append(
+                {
+                    "level": "OK",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: mask-related entries were found in TEST, supporting regional replacement design.",
+                }
+            )
+        else:
+            results.append(
+                {
+                    "level": "WARN",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: no obvious China_mask or Outside_China_mask entry was found in TEST. Confirm that CEDS and MEIC are not double-counted.",
+                }
+            )
+
+        # D. Non-target species check
+        _non_target_found = []
+        for sp in _ALL_SPECIES_KEYWORDS:
+            if sp != target_species and sp.lower() in test_hemco_lower:
+                _non_target_found.append(sp)
+
+        if not _non_target_found:
+            results.append(
+                {
+                    "level": "OK",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: no obvious non-target species keywords were found in TEST.",
+                }
+            )
+        else:
+            _nt_list = ", ".join(_non_target_found)
+            results.append(
+                {
+                    "level": "WARN",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: non-target species keywords found in TEST: {_nt_list}. Confirm this is still a single-factor sensitivity experiment.",
+                }
+            )
+
+        # E. Core consistency
+        if configs_available:
+            if core_consistent:
+                results.append(
+                    {
+                        "level": "OK",
+                        "item": "experiment intent",
+                        "message": "Core simulation period and grid settings are consistent, supporting direct BASE/TEST comparison.",
+                    }
+                )
+            else:
+                results.append(
+                    {
+                        "level": "WARN",
+                        "item": "experiment intent",
+                        "message": "Core simulation period or grid settings differ. Intent assessment may not be directly comparable.",
+                    }
+                )
+
+        return results
+
+    # ---- MEIC all intent ----
+    if intent == "meic-all":
+        _meic_in_test = hemco_keyword_results.get("MEIC") in ("test_only", "both")
+        _has_mask = any(
+            hemco_keyword_results.get(m) in ("test_only", "both")
+            for m in ["China_mask", "Outside_China_mask"]
+        )
+
+        # A. MEIC presence
+        if _meic_in_test:
+            results.append(
+                {
+                    "level": "OK",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: TEST contains MEIC-related entries as expected.",
+                }
+            )
+        else:
+            results.append(
+                {
+                    "level": "WARN",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: TEST does not contain obvious MEIC-related entries.",
+                }
+            )
+
+        # B. Multiple species keywords
+        _found_species = [sp for sp in _ALL_SPECIES_KEYWORDS if sp.lower() in test_hemco_lower]
+        if len(_found_species) >= 2:
+            _sp_list = ", ".join(_found_species)
+            results.append(
+                {
+                    "level": "OK",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: multiple emission species keywords were found in TEST: {_sp_list}.",
+                }
+            )
+        else:
+            results.append(
+                {
+                    "level": "WARN",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: fewer than two emission species keywords were found in TEST. Confirm whether this is a multi-species replacement experiment.",
+                }
+            )
+
+        # C. Mask presence
+        if _has_mask:
+            results.append(
+                {
+                    "level": "OK",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: mask-related entries were found in TEST, supporting regional replacement design.",
+                }
+            )
+        else:
+            results.append(
+                {
+                    "level": "WARN",
+                    "item": "experiment intent",
+                    "message": f"Intent {intent}: no obvious China_mask or Outside_China_mask entry was found in TEST. Confirm that regional replacement does not double-count emissions.",
+                }
+            )
+
+        # D. Core consistency
+        if configs_available:
+            if core_consistent:
+                results.append(
+                    {
+                        "level": "OK",
+                        "item": "experiment intent",
+                        "message": "Core simulation period and grid settings are consistent, supporting direct BASE/TEST comparison.",
+                    }
+                )
+            else:
+                results.append(
+                    {
+                        "level": "WARN",
+                        "item": "experiment intent",
+                        "message": "Core simulation period or grid settings differ. Intent assessment may not be directly comparable.",
+                    }
+                )
+
+        return results
+
+    # Fallback (should not reach here)
     return results
