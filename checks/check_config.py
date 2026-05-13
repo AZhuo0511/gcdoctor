@@ -81,6 +81,11 @@ def _extract_metadata_from_yaml_text(lines: list[str]) -> dict[str, str]:
     return _parse_indented_yaml(lines)
 
 
+def get_config_metadata(lines: list[str]) -> dict[str, str]:
+    """Public accessor: parse GEOS-Chem YAML config lines into dotted-key metadata."""
+    return _parse_indented_yaml(lines)
+
+
 def check_geoschem_config(run_dir: Path) -> list[dict]:
     """Check geoschem_config.yml and summarize run metadata."""
     results: list[dict] = []

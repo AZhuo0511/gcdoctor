@@ -44,6 +44,16 @@ Structured log diagnostics are rule-based and intended to provide likely causes
 and recommended checks. They do not replace manual inspection of the full
 GEOS-Chem log.
 
+## Compare BASE and TEST run directories
+
+```bash
+python -m gcdoctor.compare test_data/compare_base test_data/compare_test --output reports/compare_report.md
+```
+
+The compare tool checks directory structure, key configuration files, HEMCO
+keywords, HISTORY.rc, and restart files, then writes a comparison report with
+an experiment design assessment.
+
 ## Exit codes
 
 - `0` — no ERROR-level result was detected
