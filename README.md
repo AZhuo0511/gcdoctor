@@ -63,6 +63,23 @@ The compare tool checks directory structure, key configuration files, HEMCO
 keywords, HISTORY.rc, and restart files, then writes a comparison report with
 an experiment design assessment and intent-based analysis.
 
+## Audit an experiment plan
+
+```bash
+python -m gcdoctor.plan test_data/experiment_plan --output reports/plan_report.md
+```
+
+Specify an explicit BASE directory and enable strict mode:
+
+```bash
+python -m gcdoctor.plan test_data/experiment_plan --base BASE_CEDS --strict --output reports/plan_report.md
+```
+
+The plan tool auto-detects a BASE directory and multiple TEST experiment
+directories, then batch-audits the whole matrix, producing a single report
+with detection messages, experiment matrix assessment, and detailed per-TEST
+comparison results.
+
 ## Exit codes
 
 - `0` — no ERROR-level result was detected

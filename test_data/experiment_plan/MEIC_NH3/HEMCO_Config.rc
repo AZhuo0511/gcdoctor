@@ -1,0 +1,17 @@
+# Minimal fake HEMCO_Config.rc for gcdoctor compare testing (TEST with MEIC)
+ROOT: ./test_data/compare_test/ExtData/HEMCO
+
+(((BOUNDARY CONDITIONS)))
+* BoundaryConditions ./test_data/compare_test/ExtData/HEMCO/SAMPLE_BCs/GC_14.3.0/fullchem/GEOSChem.BoundaryConditions.*.nc4
+
+(((RESTART FIELDS)))
+* Restart ./test_data/compare_test/GEOSChem.Restart.20190701_0000z.nc4
+
+(((MEIC EMISSIONS)))
+* MEIC_ANTHRO ./ExtData/HEMCO/MEIC/v2021-03/CHINA_NOx.nc NOx 2019/1-12/1/0 C xy molec/cm2/s NO - 1 1
+* China_mask ./ExtData/HEMCO/MASKS/China_mask.generic.025x025.nc
+* Outside_China_mask ./ExtData/HEMCO/MASKS/Outside_China_mask.generic.025x025.nc
+* MEIC_ANTHRO ./ExtData/HEMCO/MEIC/v2021-03/CHINA_CO.nc CO 2019/1-12/1/0 C xy molec/cm2/s CO - 1 1
+* MEIC_ANTHRO ./ExtData/HEMCO/MEIC/v2021-03/CHINA_SO2.nc SO2 2019/1-12/1/0 C xy molec/cm2/s SO2 - 1 1
+* MEIC_ANTHRO ./ExtData/HEMCO/MEIC/v2021-03/CHINA_NH3.nc NH3 2019/1-12/1/0 C xy molec/cm2/s NH3 - 1 1
+* MEIC_ANTHRO ./ExtData/HEMCO/MEIC/v2021-03/CHINA_VOC.nc VOC 2019/1-12/1/0 C xy molec/cm2/s VOC - 1 1
