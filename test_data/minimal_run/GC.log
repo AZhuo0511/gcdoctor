@@ -2,4 +2,8 @@ GEOS-Chem simulation started
 HEMCO ERROR: Cannot find field BC_ACR
 HEMCO ERROR: Cannot find field BC_ALK4N2
 HEMCO ERROR: Cannot find field BC_DSTbin5
+MAPL ERROR: Regridding failed for meteorology input
+NetCDF: Unknown file format
+No such file or directory: /fake/path/GEOSFP.20190701.nc
+Segmentation fault
 GEOS-Chem simulation stopped

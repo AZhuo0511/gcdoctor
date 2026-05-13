@@ -83,6 +83,63 @@ def generate_diagnosis_summary(results: list[dict]) -> list[dict]:
             }
         )
 
+    # Rule 4: input data file missing (from structured log diagnostics)
+    _has_file_missing = any(
+        "Likely issue: a required input data file is missing" in r.get("message", "")
+        for r in results
+    )
+    if _has_file_missing:
+        diagnoses.append(
+            {
+                "level": "ERROR",
+                "item": "diagnosis",
+                "message": "Main issue: one or more required input data files appear to be missing or incorrectly configured.",
+            }
+        )
+
+    # Rule 5: NetCDF corruption (from structured log diagnostics)
+    _has_netcdf_corrupt = any(
+        "Likely issue: a NetCDF input file may be corrupted" in r.get("message", "")
+        for r in results
+    )
+    if _has_netcdf_corrupt:
+        diagnoses.append(
+            {
+                "level": "ERROR",
+                "item": "diagnosis",
+                "message": "Main issue: at least one NetCDF input file may be corrupted, incomplete, or unreadable.",
+            }
+        )
+
+    # Rule 6: grid / regridding failure (from structured log diagnostics)
+    _has_grid_failure = any(
+        "Likely issue: grid, regridding, or MAPL-related processing failed"
+        in r.get("message", "")
+        for r in results
+    )
+    if _has_grid_failure:
+        diagnoses.append(
+            {
+                "level": "ERROR",
+                "item": "diagnosis",
+                "message": "Main issue: grid or regridding related processing appears to have failed.",
+            }
+        )
+
+    # Rule 7: memory / crash (from structured log diagnostics)
+    _has_crash = any(
+        "Likely issue: the model crashed because of memory" in r.get("message", "")
+        for r in results
+    )
+    if _has_crash:
+        diagnoses.append(
+            {
+                "level": "ERROR",
+                "item": "diagnosis",
+                "message": "Main issue: the model appears to have crashed due to memory, numerical, or runtime instability.",
+            }
+        )
+
     # Fallback
     if not diagnoses:
         diagnoses.append(

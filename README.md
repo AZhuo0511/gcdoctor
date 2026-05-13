@@ -13,6 +13,7 @@ A lightweight diagnostic tool for GEOS-Chem run directories.
 - Detects missing BoundaryConditions species such as BC_ACR
 - Generates a Markdown report with Diagnosis summary and Detailed results
 - Supports custom report output paths
+- Provides structured log pattern diagnostics with likely causes and recommended checks
 
 ## Usage
 
@@ -38,6 +39,10 @@ python -m gcdoctor.main ~/GEOS-Chem/rundirs/gc_05x0625_merra2_fullchem_southchin
 
 gcdoctor is **read-only** for the target GEOS-Chem run directory. It reads configuration,
 restart, HEMCO, and log files, then writes a separate Markdown report.
+
+Structured log diagnostics are rule-based and intended to provide likely causes
+and recommended checks. They do not replace manual inspection of the full
+GEOS-Chem log.
 
 ## Exit codes
 

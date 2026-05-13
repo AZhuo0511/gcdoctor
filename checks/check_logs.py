@@ -7,6 +7,8 @@ errors and warning patterns. It is read-only and does not modify files.
 from pathlib import Path
 import re
 
+from utils.log_patterns import diagnose_log_line
+
 
 LOG_FILE_PATTERNS = [
     "*.log",
@@ -63,6 +65,7 @@ def _scan_one_log_file(log_path: Path, max_matches: int = 30) -> list[dict]:
     """Scan one log file and return matched error records."""
     matches: list[dict] = []
     missing_bc_species: set[str] = set()
+    seen_diagnosis_messages: set[str] = set()
 
     try:
         lines = log_path.read_text(errors="ignore").splitlines()
@@ -90,6 +93,12 @@ def _scan_one_log_file(log_path: Path, max_matches: int = 30) -> list[dict]:
                     }
                 )
                 break
+
+        # Structured log pattern diagnostics
+        for diag in diagnose_log_line(line):
+            if diag["message"] not in seen_diagnosis_messages:
+                matches.append(diag)
+                seen_diagnosis_messages.add(diag["message"])
 
         if len(matches) >= max_matches:
             matches.append(
