@@ -1,3 +1,15 @@
 # Minimal fake GEOS-Chem config for gcdoctor testing
 simulation:
   name: fullchem
+
+operations:
+  start_date: [20190701, 000000]
+  end_date: [20190801, 000000]
+
+grid:
+  resolution: 0.5x0.625
+  longitude: [60.0, 150.0]
+  latitude: [-11.0, 55.0]
+  nested_grid_simulation: true
+
+met_field: MERRA2
